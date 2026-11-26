@@ -146,6 +146,17 @@ class Bricks3DGame {
     this.fireballTimer = 0;
     this.shakeTime = 0;
 
+    // Touch / pointer drag state for mobile play
+    this.touchInput = {
+      left: false,
+      right: false,
+      dragging: false,
+      pointerId: null,
+      lastClientX: 0,
+      lastClientY: 0,
+      movedDist: 0,
+    };
+
     this.bricks = [];
     this.balls = [];
     this.powerUps = [];
@@ -172,6 +183,9 @@ class Bricks3DGame {
       btnCamera: document.getElementById("btn-camera"),
       btnAudio: document.getElementById("btn-audio"),
       btnPause: document.getElementById("btn-pause"),
+      touchLeft: document.getElementById("touch-left"),
+      touchRight: document.getElementById("touch-right"),
+      touchLaunch: document.getElementById("touch-launch"),
     };
 
     this.ui.overlayCta.addEventListener("click", () => this._handlePrimaryAction());
@@ -183,9 +197,87 @@ class Bricks3DGame {
       btn.addEventListener("click", () => this.switchWorld(btn.dataset.worldTarget));
     });
 
+    this._bindTouchControls();
+
     window.addEventListener("keydown", (e) => this._onKeyDown(e));
     window.addEventListener("keyup", (e) => this.keys.delete(e.code));
     window.addEventListener("resize", () => this._onResize());
+  }
+
+  _bindTouchControls() {
+    const bindHoldBtn = (el, side) => {
+      if (!el) return;
+      const start = (e) => {
+        e.preventDefault();
+        this.audio.unlock();
+        this.touchInput[side] = true;
+        el.classList.add("pressed");
+      };
+      const end = (e) => {
+        e.preventDefault();
+        this.touchInput[side] = false;
+        el.classList.remove("pressed");
+      };
+      el.addEventListener("pointerdown", start);
+      el.addEventListener("pointerup", end);
+      el.addEventListener("pointercancel", end);
+      el.addEventListener("pointerleave", end);
+    };
+
+    bindHoldBtn(this.ui.touchLeft, "left");
+    bindHoldBtn(this.ui.touchRight, "right");
+
+    if (this.ui.touchLaunch) {
+      this.ui.touchLaunch.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        this._handlePrimaryAction();
+      });
+    }
+
+    // Direct finger-drag on canvas: slide anywhere horizontally to move paddle, tap to launch!
+    this.canvas.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      this.audio.unlock();
+      this.touchInput.dragging = true;
+      this.touchInput.pointerId = e.pointerId;
+      this.touchInput.lastClientX = e.clientX;
+      this.touchInput.lastClientY = e.clientY;
+      this.touchInput.movedDist = 0;
+      if (this.canvas.setPointerCapture) {
+        try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+    });
+
+    this.canvas.addEventListener("pointermove", (e) => {
+      if (!this.touchInput.dragging || e.pointerId !== this.touchInput.pointerId) return;
+      const dx = e.clientX - this.touchInput.lastClientX;
+      const dy = e.clientY - this.touchInput.lastClientY;
+      this.touchInput.lastClientX = e.clientX;
+      this.touchInput.lastClientY = e.clientY;
+      this.touchInput.movedDist += Math.hypot(dx, dy);
+
+      if (this.state !== "playing") return;
+      // Map screen drag smoothly into 3D arena coordinates
+      const sensitivityX = (ARENA.halfW * 2.35) / Math.max(320, window.innerWidth);
+      const sensitivityZ = 3.2 / Math.max(480, window.innerHeight);
+      const maxPaddleX = ARENA.halfW - this.paddleWidth / 2 - 0.15;
+      this.paddleX = THREE.MathUtils.clamp(this.paddleX + dx * sensitivityX, -maxPaddleX, maxPaddleX);
+      this.paddleZ = THREE.MathUtils.clamp(this.paddleZ + dy * sensitivityZ, ARENA.paddleZMin, ARENA.paddleZMax);
+      this.paddleVelX = dx * sensitivityX * 35;
+    });
+
+    const endDrag = (e) => {
+      if (!this.touchInput.dragging || e.pointerId !== this.touchInput.pointerId) return;
+      const wasTap = this.touchInput.movedDist < 12;
+      this.touchInput.dragging = false;
+      this.touchInput.pointerId = null;
+      if (wasTap && this.state === "playing") {
+        this._launchAttachedBalls();
+      }
+    };
+
+    this.canvas.addEventListener("pointerup", endDrag);
+    this.canvas.addEventListener("pointercancel", endDrag);
   }
 
   _initThree() {
@@ -199,6 +291,7 @@ class Bricks3DGame {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 220);
+    this._onResize();
     this.camera.position.copy(CAMERA_MODES[0].pos);
     this.camera.lookAt(CAMERA_MODES[0].look);
 
@@ -614,7 +707,10 @@ class Bricks3DGame {
   }
 
   _onResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const aspect = window.innerWidth / window.innerHeight;
+    this.camera.aspect = aspect;
+    // Widen FOV slightly on portrait phones so the full 3D arena stays visible
+    this.camera.fov = aspect < 0.85 ? 60 : aspect < 1.1 ? 54 : 50;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
@@ -638,18 +734,20 @@ class Bricks3DGame {
   }
 
   _updateGameplay(dt) {
-    // 3D Paddle movement (X + optional Z depth with Up/Down or W/S)
-    const left = this.keys.has("ArrowLeft") || this.keys.has("KeyA");
-    const right = this.keys.has("ArrowRight") || this.keys.has("KeyD");
+    // 3D Paddle movement (Keyboard + Mobile Touch Buttons + Canvas Finger Drag)
+    const left = this.keys.has("ArrowLeft") || this.keys.has("KeyA") || this.touchInput.left;
+    const right = this.keys.has("ArrowRight") || this.keys.has("KeyD") || this.touchInput.right;
     const forward = this.keys.has("ArrowUp") || this.keys.has("KeyW");
     const back = this.keys.has("ArrowDown") || this.keys.has("KeyS");
 
     const moveDirX = (right ? 1 : 0) - (left ? 1 : 0);
     const moveDirZ = (back ? 1 : 0) - (forward ? 1 : 0);
 
-    this.paddleVelX = moveDirX * 17.0;
-    this.paddleX += this.paddleVelX * dt;
-    this.paddleZ += moveDirZ * 8.5 * dt;
+    if (!this.touchInput.dragging) {
+      this.paddleVelX = moveDirX * 17.0;
+      this.paddleX += this.paddleVelX * dt;
+      this.paddleZ += moveDirZ * 8.5 * dt;
+    }
 
     const maxPaddleX = ARENA.halfW - this.paddleWidth / 2 - 0.15;
     this.paddleX = THREE.MathUtils.clamp(this.paddleX, -maxPaddleX, maxPaddleX);
@@ -902,12 +1000,14 @@ class Bricks3DGame {
     this.physics.update(dt);
     if (this.env) this.env.update(elapsed);
 
-    // Dynamic 3D parallax + orbit camera
+    // Dynamic 3D parallax + orbit camera (auto-pulls back on portrait phones)
     const mode = CAMERA_MODES[this.cameraModeIdx];
-    const radius = Math.hypot(mode.pos.x, mode.pos.z);
-    const orbitX = Math.sin(this.cameraOrbitAngle) * radius + this.paddleX * mode.parallax;
-    const orbitZ = Math.cos(this.cameraOrbitAngle) * radius;
-    const desiredPos = new THREE.Vector3(orbitX, mode.pos.y, orbitZ);
+    const aspect = window.innerWidth / window.innerHeight;
+    const portraitPullback = aspect < 1.0 ? THREE.MathUtils.clamp(1.0 / Math.max(aspect, 0.52), 1.0, 1.75) : 1.0;
+    const baseRadius = Math.hypot(mode.pos.x, mode.pos.z) * portraitPullback;
+    const orbitX = Math.sin(this.cameraOrbitAngle) * baseRadius + this.paddleX * mode.parallax;
+    const orbitZ = Math.cos(this.cameraOrbitAngle) * baseRadius;
+    const desiredPos = new THREE.Vector3(orbitX, mode.pos.y * (1 + (portraitPullback - 1) * 0.65), orbitZ);
 
     this.camera.position.lerp(desiredPos, dt * 4.5);
     if (this.shakeTime > 0) {

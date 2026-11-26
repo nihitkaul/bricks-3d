@@ -2,7 +2,7 @@
 <html lang="en" data-world="nature">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Bricks 3D — Multi-World 3D Arcade</title>
   <link rel="stylesheet" href="./styles.css" />
   <script type="importmap">
@@ -78,17 +78,24 @@
         </p>
 
         <div class="controls-grid">
-          <div class="control-item"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd><span>Move Paddle in 3D</span></div>
-          <div class="control-item"><kbd>Space</kbd><span>Launch Ball / Start</span></div>
+          <div class="control-item"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd><span>Move Paddle (or Drag)</span></div>
+          <div class="control-item"><kbd>Space</kbd> / <kbd>Tap</kbd><span>Launch Ball / Start</span></div>
           <div class="control-item"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd><span>Switch 3D World</span></div>
           <div class="control-item"><kbd>C</kbd> / <kbd>Q</kbd><kbd>E</kbd><span>Camera & Orbit</span></div>
           <div class="control-item"><kbd>P</kbd><span>Pause</span></div>
           <div class="control-item"><kbd>M</kbd><span>Mute Audio</span></div>
         </div>
 
-        <button class="primary-btn" id="overlay-cta">PLAY — PRESS SPACE</button>
+        <button class="primary-btn" id="overlay-cta">PLAY — TAP OR PRESS SPACE</button>
       </div>
     </section>
+
+    <!-- Mobile On-Screen Touch Controls (visible on touch/narrow viewports) -->
+    <div class="mobile-controls" id="mobile-controls" aria-label="Touch Controls">
+      <button class="touch-btn" id="touch-left" aria-label="Move Left">◀</button>
+      <button class="touch-btn touch-launch" id="touch-launch" aria-label="Launch Ball">LAUNCH</button>
+      <button class="touch-btn" id="touch-right" aria-label="Move Right">▶</button>
+    </div>
 
     <!-- Bottom Keyboard Hint -->
     <footer class="hud-bottom">
