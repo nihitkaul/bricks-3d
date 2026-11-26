@@ -85,4 +85,35 @@ export class ArcadeAudio {
       setTimeout(() => this._tone(n, 0.18, "triangle", 0.13), idx * 90);
     });
   }
+
+  explosion() {
+    this._tone(135, 0.28, "sawtooth", 0.18, 38);
+    setTimeout(() => this._tone(90, 0.22, "square", 0.12, 32), 45);
+  }
+
+  bumperBoing() {
+    this._tone(240, 0.16, "sine", 0.15, 620);
+  }
+
+  portalWarp() {
+    this._tone(420, 0.14, "sine", 0.12, 960);
+    setTimeout(() => this._tone(960, 0.14, "triangle", 0.1, 520), 60);
+  }
+
+  laserShot() {
+    this._tone(920, 0.08, "sawtooth", 0.08, 280);
+  }
+
+  bossHit() {
+    this._tone(190, 0.14, "square", 0.14, 110);
+    setTimeout(() => this._tone(310, 0.09, "triangle", 0.1, 210), 40);
+  }
+
+  bossDefeat() {
+    this.explosion();
+    const fanfare = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+    fanfare.forEach((n, idx) => {
+      setTimeout(() => this._tone(n, 0.22, "triangle", 0.14), 140 + idx * 95);
+    });
+  }
 }

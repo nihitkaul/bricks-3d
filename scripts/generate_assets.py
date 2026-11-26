@@ -253,6 +253,103 @@ def build_satellite_space():
     export_glb("satellite_space.glb")
 
 
+def build_mushroom_bumper():
+    clear_scene()
+    mat_stem = make_material("MushroomStem", (0.94, 0.89, 0.78), metallic=0.0, roughness=0.72)
+    mat_cap = make_material("MushroomCap", (0.92, 0.16, 0.2), metallic=0.08, roughness=0.35, emission=(0.6, 0.08, 0.1), emission_strength=0.35)
+    mat_spot = make_material("MushroomSpot", (0.98, 0.96, 0.9), metallic=0.0, roughness=0.4, emission=(0.95, 0.9, 0.7), emission_strength=0.3)
+
+    # Tapered stem
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.34, depth=0.85, location=(0, 0, 0.425))
+    stem = bpy.context.active_object
+    stem.data.materials.append(mat_stem)
+
+    # Dome cap
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=20, ring_count=12, radius=0.82, location=(0, 0, 0.92))
+    cap = bpy.context.active_object
+    cap.scale = (1.0, 1.0, 0.56)
+    bpy.ops.object.transform_apply(scale=True)
+    cap.data.materials.append(mat_cap)
+
+    # Glowing spots around cap
+    for i in range(6):
+        ang = (i / 6.0) * math.tau
+        bpy.ops.mesh.primitive_uv_sphere_add(
+            segments=10,
+            ring_count=8,
+            radius=0.14,
+            location=(math.cos(ang) * 0.52, math.sin(ang) * 0.52, 1.15),
+        )
+        spot = bpy.context.active_object
+        spot.data.materials.append(mat_spot)
+
+    export_glb("mushroom_bumper.glb")
+
+
+def build_brick_tnt():
+    clear_scene()
+    mat_red = make_material("TNTRed", (0.95, 0.18, 0.12), metallic=0.2, roughness=0.32, emission=(0.95, 0.22, 0.05), emission_strength=0.9)
+    mat_band = make_material("TNTBand", (0.14, 0.14, 0.18), metallic=0.7, roughness=0.28)
+    mat_core = make_material("TNTCore", (1.0, 0.78, 0.15), metallic=0.2, roughness=0.2, emission=(1.0, 0.75, 0.1), emission_strength=2.2)
+
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, 0))
+    body = bpy.context.active_object
+    body.scale = (1.0, 0.58, 0.46)
+    bpy.ops.object.transform_apply(scale=True)
+    add_bevel(body, width=0.045, segments=3)
+    body.data.materials.append(mat_red)
+
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, 0))
+    band = bpy.context.active_object
+    band.scale = (1.03, 0.22, 0.49)
+    bpy.ops.object.transform_apply(scale=True)
+    band.data.materials.append(mat_band)
+
+    bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=0.13, depth=0.52, location=(0, 0, 0))
+    core = bpy.context.active_object
+    core.data.materials.append(mat_core)
+
+    export_glb("brick_tnt.glb")
+
+
+def build_boss_core():
+    clear_scene()
+    mat_armor = make_material("BossArmor", (0.18, 0.2, 0.28), metallic=0.88, roughness=0.22)
+    mat_core = make_material("BossCore", (1.0, 0.16, 0.42), metallic=0.2, roughness=0.18, emission=(1.0, 0.16, 0.42), emission_strength=3.0)
+    mat_gold = make_material("BossTrim", (0.98, 0.76, 0.24), metallic=0.92, roughness=0.18)
+
+    # Inner glowing energy core
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.95, location=(0, 0, 0))
+    core = bpy.context.active_object
+    core.data.materials.append(mat_core)
+
+    # Armored equatorial ring
+    bpy.ops.mesh.primitive_torus_add(major_radius=1.35, minor_radius=0.22, major_segments=24, minor_segments=12, location=(0, 0, 0))
+    ring = bpy.context.active_object
+    ring.data.materials.append(mat_armor)
+
+    # Tilted gold gyro ring
+    bpy.ops.mesh.primitive_torus_add(major_radius=1.52, minor_radius=0.1, major_segments=24, minor_segments=10, location=(0, 0, 0), rotation=(math.radians(55), 0, 0))
+    gyro = bpy.context.active_object
+    gyro.data.materials.append(mat_gold)
+
+    # 4 armored spikes
+    for i in range(4):
+        ang = (i / 4.0) * math.tau
+        bpy.ops.mesh.primitive_cone_add(
+            vertices=6,
+            radius1=0.26,
+            radius2=0.03,
+            depth=0.75,
+            location=(math.cos(ang) * 1.55, math.sin(ang) * 1.55, 0),
+            rotation=(0, math.pi / 2, ang),
+        )
+        spike = bpy.context.active_object
+        spike.data.materials.append(mat_armor)
+
+    export_glb("boss_core.glb")
+
+
 if __name__ == "__main__":
     build_paddle()
     build_brick_standard()
@@ -260,4 +357,7 @@ if __name__ == "__main__":
     build_tree_nature()
     build_planter_mall()
     build_satellite_space()
+    build_mushroom_bumper()
+    build_brick_tnt()
+    build_boss_core()
     print("All Bricks 3D Blender assets generated successfully!")

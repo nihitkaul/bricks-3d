@@ -27,6 +27,8 @@ export const WORLD_CONFIGS = {
     railEmissive: 0x1e3514,
     paddleGlow: 0x4ade80,
     ballColor: 0xfef08a,
+    mechanicLabel: "MUSHROOM BUMPERS · WIND GUSTS",
+    gravity: 14.5,
     brickPalette: [0xef4444, 0xf97316, 0xeab308, 0x22c55e, 0x14b8a6, 0x38bdf8],
   },
   mall: {
@@ -48,6 +50,8 @@ export const WORLD_CONFIGS = {
     railEmissive: 0x6b124d,
     paddleGlow: 0xf472b6,
     ballColor: 0x67e8f9,
+    mechanicLabel: "NEON WARP PORTALS",
+    gravity: 14.5,
     brickPalette: [0xff2e93, 0xa855f7, 0x06b6d4, 0xfacc15, 0xfb7185, 0x34d399],
   },
   space: {
@@ -69,6 +73,8 @@ export const WORLD_CONFIGS = {
     railEmissive: 0x0284c7,
     paddleGlow: 0x38bdf8,
     ballColor: 0xffffff,
+    mechanicLabel: "LOW-G ARCS · GRAVITY WELL",
+    gravity: 7.4,
     brickPalette: [0x38bdf8, 0x818cf8, 0xc084fc, 0x2dd4bf, 0xf43f5e, 0xfbbf24],
   },
 };
@@ -262,6 +268,24 @@ export class EnvironmentManager {
     );
     group.add(this.fireflies);
 
+    // Interactive 3D Mushroom Bumpers on the Nature Glade court
+    this.natureBumpers = [];
+    [[-4.4, 0.2], [4.4, 0.2]].forEach(([x, z]) => {
+      const bumper = this._cloneProp("mushroom_bumper", () => {
+        const g = new THREE.Group();
+        const cap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.8, 16, 12),
+          new THREE.MeshStandardMaterial({ color: 0xef4444 })
+        );
+        cap.position.y = 0.85;
+        g.add(cap);
+        return g;
+      });
+      bumper.position.set(x, 0, z);
+      group.add(bumper);
+      this.natureBumpers.push({ obj: bumper, x, z, radius: 0.88, pop: 0 });
+    });
+
     return group;
   }
 
@@ -388,6 +412,29 @@ export class EnvironmentManager {
     neonStrip.position.set(0, 7.2, -17.0);
     group.add(neonStrip);
 
+    // Interactive Paired Neon Warp Portals on the Mall court
+    this.mallPortals = [];
+    const portalSpecs = [
+      { x: -6.3, z: -0.2, color: 0x06b6d4 },
+      { x: 6.3, z: -0.2, color: 0xff2e93 },
+    ];
+    portalSpecs.forEach(({ x, z, color }) => {
+      const pGroup = new THREE.Group();
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.95, 0.14, 12, 32),
+        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.2, roughness: 0.15 })
+      );
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(0.84, 24),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, side: THREE.DoubleSide })
+      );
+      pGroup.add(ring, disc);
+      pGroup.position.set(x, 1.05, z);
+      pGroup.rotation.y = x < 0 ? 0.55 : -0.55;
+      group.add(pGroup);
+      this.mallPortals.push({ obj: pGroup, x, z, radius: 1.0, flash: 0 });
+    });
+
     return group;
   }
 
@@ -483,6 +530,27 @@ export class EnvironmentManager {
       this.asteroids.push({ obj: ast, speed: 0.4 + idx * 0.15 });
     });
 
+    // Interactive Central 3D Gravity Well on the Orbital Station court
+    const wellGroup = new THREE.Group();
+    const wellCore = new THREE.Mesh(
+      new THREE.SphereGeometry(0.45, 20, 20),
+      new THREE.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x6366f1, emissiveIntensity: 2.2, transparent: true, opacity: 0.8 })
+    );
+    const wellRingA = new THREE.Mesh(
+      new THREE.TorusGeometry(1.35, 0.06, 10, 36),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.55 })
+    );
+    wellRingA.rotation.x = Math.PI / 2;
+    const wellRingB = new THREE.Mesh(
+      new THREE.TorusGeometry(1.9, 0.04, 10, 36),
+      new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.35 })
+    );
+    wellRingB.rotation.x = Math.PI / 2;
+    wellGroup.add(wellCore, wellRingA, wellRingB);
+    wellGroup.position.set(0, 0.9, 0.2);
+    group.add(wellGroup);
+    this.spaceGravityWell = { obj: wellGroup, ringA: wellRingA, ringB: wellRingB, x: 0, z: 0.2, radius: 4.6 };
+
     return group;
   }
 
@@ -521,7 +589,19 @@ export class EnvironmentManager {
     return cfg;
   }
 
-  update(time) {
+  popBumper(idx) {
+    if (this.natureBumpers && this.natureBumpers[idx]) {
+      this.natureBumpers[idx].pop = 1.0;
+    }
+  }
+
+  flashPortals() {
+    if (this.mallPortals) {
+      this.mallPortals.forEach((p) => { p.flash = 1.0; });
+    }
+  }
+
+  update(time, dt = 0.016) {
     if (this.currentWorld === "nature") {
       this.natureTrees.forEach(({ obj, phase }) => {
         obj.rotation.z = Math.sin(time * 1.3 + phase) * 0.035;
@@ -530,7 +610,19 @@ export class EnvironmentManager {
         obj.position.y = baseY + Math.sin(time * 1.1 + phase) * 0.5;
         obj.rotation.y = time * 0.25 + phase;
       });
-      if (this.fireflies) this.fireflies.position.y = Math.sin(time * 1.4) * 0.4;
+      this.natureBumpers.forEach((b) => {
+        if (b.pop > 0) {
+          b.pop = Math.max(0, b.pop - dt * 5.0);
+          const s = 1 + Math.sin(b.pop * Math.PI) * 0.35;
+          b.obj.scale.set(s, 1 / Math.sqrt(s), s);
+        } else {
+          b.obj.scale.set(1, 1, 1);
+        }
+      });
+      if (this.fireflies) {
+        this.fireflies.position.y = Math.sin(time * 1.4) * 0.4;
+        this.fireflies.position.x = Math.sin(time * 0.9) * 1.8;
+      }
     } else if (this.currentWorld === "mall") {
       this.mallArches.forEach((arch, idx) => {
         arch.material.emissiveIntensity = 1.4 + Math.sin(time * 3.0 + idx) * 0.5;
@@ -539,6 +631,15 @@ export class EnvironmentManager {
         obj.position.y = baseY + Math.sin(time * 1.8 + phase) * 0.6;
         obj.rotation.x = time * 0.7 + phase;
         obj.rotation.y = time * 0.9;
+      });
+      this.mallPortals.forEach((p) => {
+        p.obj.rotation.z = time * 2.4;
+        if (p.flash > 0) {
+          p.flash = Math.max(0, p.flash - dt * 4.0);
+          p.obj.scale.setScalar(1 + p.flash * 0.35);
+        } else {
+          p.obj.scale.setScalar(1);
+        }
       });
     } else if (this.currentWorld === "space") {
       if (this.stars) this.stars.rotation.y = time * 0.012;
@@ -553,6 +654,12 @@ export class EnvironmentManager {
         obj.rotation.x += 0.008 * speed;
         obj.rotation.y += 0.012 * speed;
       });
+      if (this.spaceGravityWell) {
+        this.spaceGravityWell.ringA.rotation.z = time * 1.8;
+        this.spaceGravityWell.ringB.rotation.z = -time * 1.2;
+        const pulse = 1 + Math.sin(time * 3.5) * 0.08;
+        this.spaceGravityWell.obj.scale.setScalar(pulse);
+      }
     }
   }
 }
