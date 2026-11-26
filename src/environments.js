@@ -1,8 +1,8 @@
 /**
- * Manages the 3 toggleable 3D environments for Bricks 3D:
- *   1. Nature Glade (uses Blender tree_nature.glb + fireflies + warm forest sun)
- *   2. Neon Retro Mall (uses Blender planter_mall.glb + checkered terrazzo + neon arches)
- *   3. Orbital Station (uses Blender satellite_space.glb + starfield + ringed planet)
+ * Manages the 3 toggleable, deeply 3D environments for Bricks 3D:
+ *   1. Nature Glade (Blender tree_nature.glb + 3D hills, stone archway, floating mossy islands, fireflies)
+ *   2. Neon Retro Mall (Blender planter_mall.glb + 2-story balconies, glass rails, neon arches, floating holo-cubes)
+ *   3. Orbital Station (Blender satellite_space.glb + 3D dome ribs, asteroid belt, ringed planet, warp gate)
  */
 
 import * as THREE from "three";
@@ -11,20 +11,20 @@ export const WORLD_CONFIGS = {
   nature: {
     id: "nature",
     label: "NATURE GLADE",
-    skyColor: 0x7cc4fa,
-    fogColor: 0x89ccf5,
-    fogDensity: 0.015,
-    ambientColor: 0xdff5df,
-    ambientIntensity: 0.9,
-    sunColor: 0xfff3d1,
-    sunIntensity: 1.8,
+    skyColor: 0x6cbcf7,
+    fogColor: 0x8ad0fa,
+    fogDensity: 0.011,
+    ambientColor: 0xdff7df,
+    ambientIntensity: 0.95,
+    sunColor: 0xfff1c9,
+    sunIntensity: 2.0,
     rimColor: 0x4ade80,
-    rimIntensity: 0.65,
-    floorColor: 0x2f5e35,
-    floorRoughness: 0.85,
-    floorMetalness: 0.05,
+    rimIntensity: 0.9,
+    floorColor: 0x2f6336,
+    floorRoughness: 0.82,
+    floorMetalness: 0.06,
     railColor: 0x7c4a26,
-    railEmissive: 0x1a2e12,
+    railEmissive: 0x1e3514,
     paddleGlow: 0x4ade80,
     ballColor: 0xfef08a,
     brickPalette: [0xef4444, 0xf97316, 0xeab308, 0x22c55e, 0x14b8a6, 0x38bdf8],
@@ -32,20 +32,20 @@ export const WORLD_CONFIGS = {
   mall: {
     id: "mall",
     label: "NEON MALL",
-    skyColor: 0x1a1033,
-    fogColor: 0x211340,
-    fogDensity: 0.017,
+    skyColor: 0x140b29,
+    fogColor: 0x1d103a,
+    fogDensity: 0.013,
     ambientColor: 0xf5d0fe,
-    ambientIntensity: 0.85,
+    ambientIntensity: 0.9,
     sunColor: 0xffe4f3,
-    sunIntensity: 1.5,
+    sunIntensity: 1.65,
     rimColor: 0xf472b6,
-    rimIntensity: 1.4,
-    floorColor: 0xe2dce8,
-    floorRoughness: 0.18,
-    floorMetalness: 0.25,
+    rimIntensity: 1.8,
+    floorColor: 0xe6dff0,
+    floorRoughness: 0.14,
+    floorMetalness: 0.3,
     railColor: 0xd4af37,
-    railEmissive: 0x5c1042,
+    railEmissive: 0x6b124d,
     paddleGlow: 0xf472b6,
     ballColor: 0x67e8f9,
     brickPalette: [0xff2e93, 0xa855f7, 0x06b6d4, 0xfacc15, 0xfb7185, 0x34d399],
@@ -53,20 +53,20 @@ export const WORLD_CONFIGS = {
   space: {
     id: "space",
     label: "ORBITAL STATION",
-    skyColor: 0x030712,
-    fogColor: 0x050b18,
-    fogDensity: 0.012,
+    skyColor: 0x020611,
+    fogColor: 0x040a18,
+    fogDensity: 0.009,
     ambientColor: 0x93c5fd,
-    ambientIntensity: 0.7,
+    ambientIntensity: 0.78,
     sunColor: 0xe0f2fe,
-    sunIntensity: 1.6,
+    sunIntensity: 1.75,
     rimColor: 0x38bdf8,
-    rimIntensity: 1.8,
-    floorColor: 0x111827,
-    floorRoughness: 0.32,
-    floorMetalness: 0.72,
+    rimIntensity: 2.1,
+    floorColor: 0x0f172a,
+    floorRoughness: 0.28,
+    floorMetalness: 0.78,
     railColor: 0x38bdf8,
-    railEmissive: 0x0ea5e9,
+    railEmissive: 0x0284c7,
     paddleGlow: 0x38bdf8,
     ballColor: 0xffffff,
     brickPalette: [0x38bdf8, 0x818cf8, 0xc084fc, 0x2dd4bf, 0xf43f5e, 0xfbbf24],
@@ -116,29 +116,29 @@ export class EnvironmentManager {
     this.models = models;
     this.currentWorld = "nature";
 
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     this.scene.add(this.ambientLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.6);
-    this.sunLight.position.set(10, 22, 12);
+    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    this.sunLight.position.set(12, 26, 14);
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.set(2048, 2048);
     this.sunLight.shadow.camera.near = 2;
-    this.sunLight.shadow.camera.far = 60;
-    const d = 22;
+    this.sunLight.shadow.camera.far = 70;
+    const d = 24;
     this.sunLight.shadow.camera.left = -d;
     this.sunLight.shadow.camera.right = d;
     this.sunLight.shadow.camera.top = d;
     this.sunLight.shadow.camera.bottom = -d;
     this.scene.add(this.sunLight);
 
-    this.rimLight = new THREE.PointLight(0x4ade80, 1.0, 48);
-    this.rimLight.position.set(0, 7, -14);
+    this.rimLight = new THREE.PointLight(0x4ade80, 1.2, 55);
+    this.rimLight.position.set(0, 9, -15);
     this.scene.add(this.rimLight);
 
     this.floorTextures = {
-      nature: makeGridTexture("#2e5c33", "#386e3e", 8),
-      mall: makeCheckerTexture("#efe7f5", "#c8b6db", 9),
+      nature: makeGridTexture("#2e6134", "#3b7842", 8),
+      mall: makeCheckerTexture("#f0e8f7", "#cbb7df", 9),
       space: makeGridTexture("#0f172a", "#1e3a5f", 10),
     };
 
@@ -171,33 +171,61 @@ export class EnvironmentManager {
   _buildNatureGroup() {
     const group = new THREE.Group();
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(140, 140),
-      new THREE.MeshStandardMaterial({ color: 0x3b7a3e, roughness: 0.95 })
+      new THREE.PlaneGeometry(180, 180),
+      new THREE.MeshStandardMaterial({ color: 0x3b7d3e, roughness: 0.94 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.35;
     ground.receiveShadow = true;
     group.add(ground);
 
-    // Stylized pine trees from Blender around the arena
+    // 3D rolling hills & distant mountain ridges
+    const hillMat = new THREE.MeshStandardMaterial({ color: 0x2c6633, roughness: 0.9 });
+    const peakMat = new THREE.MeshStandardMaterial({ color: 0x4b6e58, roughness: 0.85 });
+    const hills = [
+      [-26, -24, 14, 9, hillMat],
+      [26, -26, 15, 10, hillMat],
+      [0, -38, 22, 14, peakMat],
+      [-34, -4, 12, 7, hillMat],
+      [34, -2, 13, 8, hillMat],
+    ];
+    hills.forEach(([x, z, r, h, mat]) => {
+      const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), mat);
+      m.position.set(x, h / 2 - 0.5, z);
+      m.receiveShadow = true;
+      group.add(m);
+    });
+
+    // Ancient stone archway framing the back of the 3D court
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8b959e, roughness: 0.85 });
+    const leftPillar = new THREE.Mesh(new THREE.BoxGeometry(1.8, 8.5, 1.8), stoneMat);
+    leftPillar.position.set(-10.8, 3.9, -13.5);
+    leftPillar.castShadow = true;
+    const rightPillar = leftPillar.clone();
+    rightPillar.position.x = 10.8;
+    const archBeam = new THREE.Mesh(new THREE.BoxGeometry(24.5, 1.6, 2.1), stoneMat);
+    archBeam.position.set(0, 8.4, -13.5);
+    archBeam.castShadow = true;
+    group.add(leftPillar, rightPillar, archBeam);
+
+    // Stylized Blender pine trees surrounding the clearing
     const treePositions = [
-      [-12.5, -10], [-14.5, -4], [-13, 2], [-15, 8], [-11, -15],
-      [12.5, -10], [14.5, -4], [13, 2], [15, 8], [11, -15],
-      [-6, -16.5], [0, -17.5], [6, -16.5], [-18, -12], [18, -12],
+      [-12.5, -10], [-14.8, -4], [-13.2, 2], [-15.2, 8], [-11.5, -16],
+      [12.5, -10], [14.8, -4], [13.2, 2], [15.2, 8], [11.5, -16],
+      [-6.5, -18.5], [0, -20], [6.5, -18.5], [-19, -13], [19, -13],
+      [-20, 4], [20, 4],
     ];
     this.natureTrees = [];
     treePositions.forEach(([x, z], idx) => {
       const tree = this._cloneProp("tree_nature", () => {
-        const g = new THREE.Group();
         const cone = new THREE.Mesh(
-          new THREE.ConeGeometry(1.1, 3.2, 8),
+          new THREE.ConeGeometry(1.1, 3.4, 8),
           new THREE.MeshStandardMaterial({ color: 0x226633 })
         );
-        cone.position.y = 1.6;
-        g.add(cone);
-        return g;
+        cone.position.y = 1.7;
+        return cone;
       });
-      const scale = 1.15 + (idx % 4) * 0.25;
+      const scale = 1.25 + (idx % 4) * 0.32;
       tree.scale.setScalar(scale);
       tree.position.set(x, -0.35, z);
       tree.rotation.y = idx * 1.1;
@@ -205,23 +233,33 @@ export class EnvironmentManager {
       this.natureTrees.push({ obj: tree, phase: idx * 0.7 });
     });
 
-    // Floating sunlit fireflies
-    const count = 80;
+    // Floating sunlit 3D mossy stones & fireflies
+    this.floatingNatureRocks = [];
+    const rockCoords = [[-16, 7.5, -14], [16, 8.2, -12], [-15, 6.2, 4], [15, 6.8, 3]];
+    rockCoords.forEach(([x, y, z], idx) => {
+      const rock = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(1.15, 0),
+        new THREE.MeshStandardMaterial({ color: 0x5c7a5e, roughness: 0.85 })
+      );
+      rock.position.set(x, y, z);
+      rock.castShadow = true;
+      group.add(rock);
+      this.floatingNatureRocks.push({ obj: rock, baseY: y, phase: idx * 1.5 });
+    });
+
+    const count = 110;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 34;
-      positions[i * 3 + 1] = 0.8 + Math.random() * 6.5;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+      positions[i * 3] = (Math.random() - 0.5) * 38;
+      positions[i * 3 + 1] = 1.0 + Math.random() * 9.5;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 34;
     }
     const fireflyGeo = new THREE.BufferGeometry();
     fireflyGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const fireflyMat = new THREE.PointsMaterial({
-      color: 0xfef08a,
-      size: 0.22,
-      transparent: true,
-      opacity: 0.85,
-    });
-    this.fireflies = new THREE.Points(fireflyGeo, fireflyMat);
+    this.fireflies = new THREE.Points(
+      fireflyGeo,
+      new THREE.PointsMaterial({ color: 0xfef08a, size: 0.24, transparent: true, opacity: 0.9 })
+    );
     group.add(this.fireflies);
 
     return group;
@@ -230,17 +268,56 @@ export class EnvironmentManager {
   _buildMallGroup() {
     const group = new THREE.Group();
     const atriumFloor = new THREE.Mesh(
-      new THREE.PlaneGeometry(140, 140),
+      new THREE.PlaneGeometry(160, 160),
       new THREE.MeshStandardMaterial({
-        map: makeCheckerTexture("#2b1c47", "#1e1233", 28),
-        roughness: 0.25,
-        metalness: 0.2,
+        map: makeCheckerTexture("#2b1c47", "#1e1233", 30),
+        roughness: 0.2,
+        metalness: 0.25,
       })
     );
     atriumFloor.rotation.x = -Math.PI / 2;
     atriumFloor.position.y = -0.35;
     atriumFloor.receiveShadow = true;
     group.add(atriumFloor);
+
+    // 2-story 3D Mall Atrium Balconies on left & right sides
+    const balconyMat = new THREE.MeshStandardMaterial({ color: 0x261742, roughness: 0.4, metalness: 0.25 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x0ea5e9,
+      emissiveIntensity: 0.35,
+      transparent: true,
+      opacity: 0.35,
+      roughness: 0.1,
+    });
+    const neonTrimMat = new THREE.MeshStandardMaterial({
+      color: 0xff2e93,
+      emissive: 0xff2e93,
+      emissiveIntensity: 1.8,
+    });
+
+    [-15.2, 15.2].forEach((x) => {
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.7, 36), balconyMat);
+      deck.position.set(x, 4.8, -2);
+      deck.castShadow = true;
+      group.add(deck);
+
+      const glassRail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.4, 36), glassMat);
+      glassRail.position.set(x + (x < 0 ? 2.1 : -2.1), 5.85, -2);
+      group.add(glassRail);
+
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 36), neonTrimMat);
+      trim.position.set(x + (x < 0 ? 2.2 : -2.2), 4.8, -2);
+      group.add(trim);
+
+      // Vertical mall columns
+      [-14, -4, 6].forEach((z) => {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 11, 12), balconyMat);
+        col.position.set(x + (x < 0 ? 1.5 : -1.5), 5.2, z);
+        col.castShadow = true;
+        group.add(col);
+      });
+    });
 
     // Blender mall palm planters flanking the court
     const planterPositions = [
@@ -256,7 +333,7 @@ export class EnvironmentManager {
         mesh.position.y = 0.6;
         return mesh;
       });
-      planter.scale.setScalar(1.1);
+      planter.scale.setScalar(1.15);
       planter.position.set(x, -0.35, z);
       planter.rotation.y = idx * 0.6;
       group.add(planter);
@@ -266,11 +343,11 @@ export class EnvironmentManager {
     this.mallArches = [];
     const archColors = [0xff2e93, 0x06b6d4, 0xa855f7, 0xff2e93];
     [-12, -5, 2, 9].forEach((z, idx) => {
-      const archGeo = new THREE.TorusGeometry(13.5, 0.16, 12, 48, Math.PI);
+      const archGeo = new THREE.TorusGeometry(14.0, 0.2, 12, 48, Math.PI);
       const archMat = new THREE.MeshStandardMaterial({
         color: archColors[idx],
         emissive: archColors[idx],
-        emissiveIntensity: 1.8,
+        emissiveIntensity: 1.9,
         roughness: 0.2,
       });
       const arch = new THREE.Mesh(archGeo, archMat);
@@ -279,22 +356,36 @@ export class EnvironmentManager {
       this.mallArches.push(arch);
     });
 
-    // Storefront neon billboards in the back
-    const signMat = new THREE.MeshStandardMaterial({
-      color: 0x06b6d4,
-      emissive: 0x06b6d4,
-      emissiveIntensity: 1.4,
-      roughness: 0.2,
+    // Floating rotating 3D neon mall holo-cubes
+    this.mallCubes = [];
+    [[-11.5, 8.2, -9], [11.5, 8.2, -9], [0, 10.5, -14]].forEach(([x, y, z], idx) => {
+      const cube = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1.15),
+        new THREE.MeshStandardMaterial({
+          color: idx % 2 === 0 ? 0x06b6d4 : 0xff2e93,
+          emissive: idx % 2 === 0 ? 0x06b6d4 : 0xff2e93,
+          emissiveIntensity: 1.2,
+          wireframe: true,
+        })
+      );
+      cube.position.set(x, y, z);
+      group.add(cube);
+      this.mallCubes.push({ obj: cube, baseY: y, phase: idx * 1.4 });
     });
+
+    // Back arcade storefront wall
     const backWall = new THREE.Mesh(
-      new THREE.BoxGeometry(28, 7, 0.6),
-      new THREE.MeshStandardMaterial({ color: 0x1c1230, roughness: 0.5 })
+      new THREE.BoxGeometry(34, 9.5, 0.8),
+      new THREE.MeshStandardMaterial({ color: 0x1c1230, roughness: 0.45 })
     );
-    backWall.position.set(0, 3.1, -17);
+    backWall.position.set(0, 4.4, -17.5);
     group.add(backWall);
 
-    const neonStrip = new THREE.Mesh(new THREE.BoxGeometry(22, 0.35, 0.25), signMat);
-    neonStrip.position.set(0, 5.2, -16.6);
+    const neonStrip = new THREE.Mesh(
+      new THREE.BoxGeometry(26, 0.4, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 1.8 })
+    );
+    neonStrip.position.set(0, 7.2, -17.0);
     group.add(neonStrip);
 
     return group;
@@ -304,10 +395,10 @@ export class EnvironmentManager {
     const group = new THREE.Group();
 
     // Deep starfield
-    const starCount = 700;
+    const starCount = 900;
     const starPos = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
-      const r = 38 + Math.random() * 50;
+      const r = 40 + Math.random() * 55;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
@@ -316,44 +407,58 @@ export class EnvironmentManager {
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0xe0f2fe, size: 0.35 });
-    this.stars = new THREE.Points(starGeo, starMat);
+    this.stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xe0f2fe, size: 0.38 }));
     group.add(this.stars);
+
+    // 3D Glowing Warp Gate behind the court
+    this.warpGate = new THREE.Mesh(
+      new THREE.TorusGeometry(6.8, 0.32, 16, 48),
+      new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0ea5e9,
+        emissiveIntensity: 2.0,
+        metalness: 0.8,
+        roughness: 0.2,
+      })
+    );
+    this.warpGate.position.set(0, 6.2, -18.5);
+    group.add(this.warpGate);
 
     // Ringed alien planet in backdrop
     const planetGroup = new THREE.Group();
     const planet = new THREE.Mesh(
-      new THREE.SphereGeometry(6.5, 32, 32),
+      new THREE.SphereGeometry(7.2, 32, 32),
       new THREE.MeshStandardMaterial({
         color: 0x3b82f6,
         emissive: 0x1d4ed8,
-        emissiveIntensity: 0.35,
-        roughness: 0.55,
+        emissiveIntensity: 0.4,
+        roughness: 0.5,
       })
     );
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(8.5, 11.8, 48),
+      new THREE.RingGeometry(9.4, 13.0, 48),
       new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.45,
+        opacity: 0.5,
       })
     );
     ring.rotation.x = Math.PI / 2.6;
     ring.rotation.y = 0.3;
     planetGroup.add(planet, ring);
-    planetGroup.position.set(-14, 9, -32);
+    planetGroup.position.set(-16, 11, -35);
     group.add(planetGroup);
     this.planetGroup = planetGroup;
 
-    // Blender orbital satellites floating around the deck
+    // Blender orbital satellites floating at varied 3D heights
     this.satellites = [];
     const satCoords = [
-      [-13.5, 4.5, -8],
-      [13.5, 5.2, -5],
-      [12.5, 3.8, 6],
-      [-12.5, 3.5, 5],
+      [-13.5, 5.0, -8],
+      [13.5, 6.4, -5],
+      [12.8, 4.2, 6],
+      [-12.8, 3.8, 5],
+      [0, 11.2, -10],
     ];
     satCoords.forEach(([x, y, z], idx) => {
       const sat = this._cloneProp("satellite_space", () => {
@@ -362,10 +467,20 @@ export class EnvironmentManager {
           new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.8 })
         );
       });
-      sat.scale.setScalar(1.25);
+      sat.scale.setScalar(1.3);
       sat.position.set(x, y, z);
       group.add(sat);
       this.satellites.push({ obj: sat, baseY: y, phase: idx * 1.4 });
+    });
+
+    // Tumbling 3D asteroids
+    this.asteroids = [];
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.9, metalness: 0.25 });
+    [[-18, 9, -18], [19, 8, -16], [-17, 2.5, -14], [18, 3.5, 2]].forEach(([x, y, z], idx) => {
+      const ast = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3, 0), rockMat);
+      ast.position.set(x, y, z);
+      group.add(ast);
+      this.asteroids.push({ obj: ast, speed: 0.4 + idx * 0.15 });
     });
 
     return group;
@@ -409,22 +524,34 @@ export class EnvironmentManager {
   update(time) {
     if (this.currentWorld === "nature") {
       this.natureTrees.forEach(({ obj, phase }) => {
-        obj.rotation.z = Math.sin(time * 1.3 + phase) * 0.03;
+        obj.rotation.z = Math.sin(time * 1.3 + phase) * 0.035;
       });
-      if (this.fireflies) {
-        this.fireflies.position.y = Math.sin(time * 1.4) * 0.35;
-      }
+      this.floatingNatureRocks.forEach(({ obj, baseY, phase }) => {
+        obj.position.y = baseY + Math.sin(time * 1.1 + phase) * 0.5;
+        obj.rotation.y = time * 0.25 + phase;
+      });
+      if (this.fireflies) this.fireflies.position.y = Math.sin(time * 1.4) * 0.4;
     } else if (this.currentWorld === "mall") {
       this.mallArches.forEach((arch, idx) => {
-        arch.material.emissiveIntensity = 1.4 + Math.sin(time * 3.0 + idx) * 0.45;
+        arch.material.emissiveIntensity = 1.4 + Math.sin(time * 3.0 + idx) * 0.5;
+      });
+      this.mallCubes.forEach(({ obj, baseY, phase }) => {
+        obj.position.y = baseY + Math.sin(time * 1.8 + phase) * 0.6;
+        obj.rotation.x = time * 0.7 + phase;
+        obj.rotation.y = time * 0.9;
       });
     } else if (this.currentWorld === "space") {
       if (this.stars) this.stars.rotation.y = time * 0.012;
       if (this.planetGroup) this.planetGroup.rotation.y = time * 0.08;
+      if (this.warpGate) this.warpGate.rotation.z = time * 0.55;
       this.satellites.forEach(({ obj, baseY, phase }) => {
-        obj.position.y = baseY + Math.sin(time * 1.6 + phase) * 0.55;
+        obj.position.y = baseY + Math.sin(time * 1.6 + phase) * 0.6;
         obj.rotation.y = time * 0.5 + phase;
         obj.rotation.z = Math.sin(time * 0.9 + phase) * 0.2;
+      });
+      this.asteroids.forEach(({ obj, speed }) => {
+        obj.rotation.x += 0.008 * speed;
+        obj.rotation.y += 0.012 * speed;
       });
     }
   }
