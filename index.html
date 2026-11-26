@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" data-world="nature">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bricks 3D — Multi-World 3D Arcade</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://esm.sh/three@0.170.0",
+        "three/addons/": "https://esm.sh/three@0.170.0/examples/jsm/",
+        "cannon-es": "https://esm.sh/cannon-es@0.20.0"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Top Arcade HUD -->
+    <header class="hud-top">
+      <div class="hud-brand">
+        <span class="brand-title">BRICKS 3D</span>
+        <span class="brand-badge" id="world-label">NATURE GLADE</span>
+      </div>
+
+      <div class="hud-stats">
+        <div class="stat-pill">
+          <span class="stat-label">SCORE</span>
+          <span class="stat-value" id="score-val">0</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">LEVEL</span>
+          <span class="stat-value" id="level-val">1</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">LIVES</span>
+          <span class="stat-value" id="lives-val">●●●</span>
+        </div>
+        <div class="stat-pill combo-pill hidden" id="combo-pill">
+          <span class="stat-label">COMBO</span>
+          <span class="stat-value" id="combo-val">x2</span>
+        </div>
+      </div>
+
+      <div class="hud-actions">
+        <button class="icon-btn" id="btn-camera" title="Switch Camera (C)">CAM [C]</button>
+        <button class="icon-btn" id="btn-audio" title="Toggle Audio (M)">SFX [M]</button>
+        <button class="icon-btn" id="btn-pause" title="Pause (P)">PAUSE [P]</button>
+      </div>
+    </header>
+
+    <!-- Environment Switcher Bar -->
+    <nav class="world-switcher" aria-label="Environment Switcher">
+      <button class="world-btn active" data-world-target="nature">
+        <span class="key-cap">1</span> Nature Glade
+      </button>
+      <button class="world-btn" data-world-target="mall">
+        <span class="key-cap">2</span> Neon Mall
+      </button>
+      <button class="world-btn" data-world-target="space">
+        <span class="key-cap">3</span> Orbital Station
+      </button>
+    </nav>
+
+    <!-- Active Power-up Toast -->
+    <div class="toast hidden" id="toast-banner">MULTI-BALL!</div>
+
+    <!-- Center Overlay (Start / Pause / Game Over / Level Clear) -->
+    <section class="overlay" id="overlay">
+      <div class="overlay-card">
+        <p class="overlay-eyebrow">3D PHYSICS · BLENDER ASSETS · 3 WORLDS</p>
+        <h1 class="overlay-title" id="overlay-title">BRICKS 3D</h1>
+        <p class="overlay-subtitle" id="overlay-subtitle">
+          Classic arcade brick-breaker reimagined in 3D with shattering rigid-body physics and live world switching.
+        </p>
+
+        <div class="controls-grid">
+          <div class="control-item"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd><span>Move Paddle</span></div>
+          <div class="control-item"><kbd>Space</kbd><span>Launch Ball / Start</span></div>
+          <div class="control-item"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd><span>Switch 3D World</span></div>
+          <div class="control-item"><kbd>C</kbd><span>Camera Angle</span></div>
+          <div class="control-item"><kbd>P</kbd><span>Pause</span></div>
+          <div class="control-item"><kbd>M</kbd><span>Mute Audio</span></div>
+        </div>
+
+        <button class="primary-btn" id="overlay-cta">PLAY — PRESS SPACE</button>
+      </div>
+    </section>
+
+    <!-- Bottom Keyboard Hint -->
+    <footer class="hud-bottom">
+      <span><kbd>←</kbd><kbd>→</kbd> Move</span>
+      <span><kbd>Space</kbd> Launch</span>
+      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> World</span>
+      <span><kbd>C</kbd> Camera</span>
+      <span><kbd>R</kbd> Restart</span>
+    </footer>
+  </div>
+
+  <script type="module" src="./src/game.js"></script>
+</body>
+</html>
