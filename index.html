@@ -47,6 +47,7 @@
 
       <div class="hud-actions">
         <button class="icon-btn" id="btn-diff" title="Cycle Difficulty">MED</button>
+        <button class="icon-btn" id="btn-sens" title="Cycle Paddle Sensitivity">SENS: MED</button>
         <button class="icon-btn" id="btn-camera" title="Switch Camera (C)">CAM [C]</button>
         <button class="icon-btn" id="btn-audio" title="Toggle Audio (M)">SFX [M]</button>
         <button class="icon-btn" id="btn-pause" title="Pause (P)">PAUSE [P]</button>
@@ -91,6 +92,15 @@
           <button class="diff-btn" data-diff="easy">EASY<span>5 Lives · Chill</span></button>
           <button class="diff-btn active" data-diff="medium">MEDIUM<span>3 Lives · Classic</span></button>
           <button class="diff-btn" data-diff="hard">HARD<span>2 Lives · Pro 2.5x</span></button>
+        </div>
+
+        <div class="sens-row" role="group" aria-label="Paddle Sensitivity">
+          <span class="sens-label">PADDLE SENSITIVITY</span>
+          <div class="sens-picker">
+            <button class="sens-btn" data-sens="low">LOW</button>
+            <button class="sens-btn active" data-sens="medium">MEDIUM</button>
+            <button class="sens-btn" data-sens="high">HIGH</button>
+          </div>
         </div>
 
         <div class="controls-grid">

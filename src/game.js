@@ -83,6 +83,12 @@ const DIFFICULTIES = {
   },
 };
 
+const SENSITIVITIES = {
+  low: { id: "low", label: "LOW", short: "LOW", speedMult: 0.68, dragMult: 0.75 },
+  medium: { id: "medium", label: "MEDIUM", short: "MED", speedMult: 1.0, dragMult: 1.0 },
+  high: { id: "high", label: "HIGH", short: "HIGH", speedMult: 1.45, dragMult: 1.35 },
+};
+
 // Multi-story 3D levels: '1'-'5' standard, 'A' armored (2 HP), 'T' Explosive TNT!
 const LEVELS = [
   {
@@ -185,6 +191,11 @@ class Bricks3DGame {
     this.state = "start";
     this.difficultyKey = "medium";
     this.diff = DIFFICULTIES.medium;
+    const savedSens = (() => {
+      try { return localStorage.getItem("bricks3d_sensitivity"); } catch (_) { return null; }
+    })();
+    this.sensitivityKey = SENSITIVITIES[savedSens] ? savedSens : "medium";
+    this.sens = SENSITIVITIES[this.sensitivityKey];
     this.score = 0;
     this.lives = this.diff.lives;
     this.levelIdx = 0;
@@ -257,7 +268,9 @@ class Bricks3DGame {
       overlayCta: document.getElementById("overlay-cta"),
       worldBtns: Array.from(document.querySelectorAll(".world-btn")),
       diffBtns: Array.from(document.querySelectorAll(".diff-btn")),
+      sensBtns: Array.from(document.querySelectorAll(".sens-btn")),
       btnDiff: document.getElementById("btn-diff"),
+      btnSens: document.getElementById("btn-sens"),
       btnCamera: document.getElementById("btn-camera"),
       btnAudio: document.getElementById("btn-audio"),
       btnPause: document.getElementById("btn-pause"),
@@ -268,6 +281,7 @@ class Bricks3DGame {
 
     this.ui.overlayCta.addEventListener("click", () => this._handlePrimaryAction());
     this.ui.btnDiff.addEventListener("click", () => this.cycleDifficulty());
+    if (this.ui.btnSens) this.ui.btnSens.addEventListener("click", () => this.cycleSensitivity());
     this.ui.btnCamera.addEventListener("click", () => this.cycleCamera());
     this.ui.btnAudio.addEventListener("click", () => this.toggleAudio());
     this.ui.btnPause.addEventListener("click", () => this.togglePause());
@@ -279,6 +293,12 @@ class Bricks3DGame {
     this.ui.diffBtns.forEach((btn) => {
       btn.addEventListener("click", () => this.setDifficulty(btn.dataset.diff));
     });
+
+    this.ui.sensBtns.forEach((btn) => {
+      btn.addEventListener("click", () => this.setSensitivity(btn.dataset.sens));
+    });
+
+    this.setSensitivity(this.sensitivityKey, true);
 
     this._bindTouchControls();
 
@@ -340,8 +360,8 @@ class Bricks3DGame {
       this.touchInput.movedDist += Math.hypot(dx, dy);
 
       if (this.state !== "playing") return;
-      const sensitivityX = (ARENA.halfW * 2.35) / Math.max(320, window.innerWidth);
-      const sensitivityZ = 3.2 / Math.max(480, window.innerHeight);
+      const sensitivityX = ((ARENA.halfW * 2.35) / Math.max(320, window.innerWidth)) * this.sens.dragMult;
+      const sensitivityZ = (3.2 / Math.max(480, window.innerHeight)) * this.sens.dragMult;
       const maxPaddleX = ARENA.halfW - this.paddleWidth / 2 - 0.15;
       this.paddleX = THREE.MathUtils.clamp(this.paddleX + dx * sensitivityX, -maxPaddleX, maxPaddleX);
       this.paddleZ = THREE.MathUtils.clamp(this.paddleZ + dy * sensitivityZ, ARENA.paddleZMin, ARENA.paddleZMax);
@@ -1068,6 +1088,31 @@ class Bricks3DGame {
     this.setDifficulty(next);
   }
 
+  setSensitivity(sensKey, silent = false) {
+    if (!SENSITIVITIES[sensKey]) return;
+    this.sensitivityKey = sensKey;
+    this.sens = SENSITIVITIES[sensKey];
+    try { localStorage.setItem("bricks3d_sensitivity", sensKey); } catch (_) {}
+
+    if (this.ui.sensBtns) {
+      this.ui.sensBtns.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.sens === sensKey);
+      });
+    }
+    if (this.ui.btnSens) this.ui.btnSens.textContent = `SENS: ${this.sens.short}`;
+
+    if (!silent) {
+      this.audio.paddleHit();
+      this._showToast(`PADDLE SENSITIVITY: ${this.sens.label}`);
+    }
+  }
+
+  cycleSensitivity() {
+    const order = ["low", "medium", "high"];
+    const next = order[(order.indexOf(this.sensitivityKey) + 1) % order.length];
+    this.setSensitivity(next);
+  }
+
   cycleCamera() {
     this.cameraModeIdx = (this.cameraModeIdx + 1) % CAMERA_MODES.length;
     this.cameraOrbitAngle = 0;
@@ -1234,10 +1279,10 @@ class Bricks3DGame {
     const effectiveDirX = isBoosting && moveDirX === 0 ? this.boost.activeDir : moveDirX;
 
     if (!this.touchInput.dragging) {
-      const speedMult = isBoosting ? 2.25 : 1.0;
+      const speedMult = (isBoosting ? 2.25 : 1.0) * this.sens.speedMult;
       this.paddleVelX = effectiveDirX * 17.0 * speedMult;
       this.paddleX += this.paddleVelX * dt;
-      this.paddleZ += moveDirZ * 8.5 * dt;
+      this.paddleZ += moveDirZ * 8.5 * this.sens.speedMult * dt;
     }
 
     const maxPaddleX = ARENA.halfW - this.paddleWidth / 2 - 0.15;

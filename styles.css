@@ -387,6 +387,54 @@ html, body, #app {
   font-weight: 700;
 }
 
+.sens-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sens-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.sens-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.sens-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sens-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.sens-btn.active {
+  background: var(--accent);
+  color: #061018;
+  border-color: transparent;
+}
+
 .controls-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
