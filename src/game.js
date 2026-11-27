@@ -6,9 +6,15 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { ArcadeAudio } from "./audio.js";
 import { EnvironmentManager, WORLD_CONFIGS } from "./environments.js";
 import { DebrisPhysics } from "./physics.js";
+import {
+  makeStoneBrickMaps,
+  makeBrushedMetalMaps,
+  makeCeramicBrickMaps,
+} from "./textures.js";
 
 const ARENA = {
   halfW: 9.0,
@@ -358,7 +364,22 @@ class Bricks3DGame {
     this.renderer.toneMappingExposure = 1.1;
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 220);
+
+    // Photorealistic IBL environment reflections for metallic/glossy PBR bricks, paddle, ball, and floors
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = 0.72;
+    pmrem.dispose();
+
+    // Pre-generate realistic PBR surface maps for bricks
+    this.brickPBR = {
+      nature: makeStoneBrickMaps(),
+      mall: makeCeramicBrickMaps(),
+      space: makeBrushedMetalMaps(),
+      armored: makeBrushedMetalMaps(),
+    };
+
+    this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 260);
     this._onResize();
     this.camera.position.copy(CAMERA_MODES[0].pos);
     this.camera.lookAt(CAMERA_MODES[0].look);
@@ -609,18 +630,26 @@ class Bricks3DGame {
               if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
-                child.material = child.material.clone();
-                if (!armored && !tnt) {
-                  child.material.color.setHex(colorHex);
-                  child.material.emissive.setHex(colorHex);
-                  child.material.emissiveIntensity = 0.2;
+                if (armored) {
+                  child.material = new THREE.MeshStandardMaterial({
+                    color: 0xb8c4d4,
+                    metalness: 0.88,
+                    roughness: 0.28,
+                    bumpMap: this.brickPBR.armored.bumpMap,
+                    bumpScale: 0.035,
+                    roughnessMap: this.brickPBR.armored.roughnessMap,
+                  });
+                } else if (!tnt) {
+                  child.material = this._createRealisticBrickMaterial(colorHex);
+                } else {
+                  child.material = child.material.clone();
                 }
               }
             });
           } else {
             mesh = new THREE.Mesh(
               new THREE.BoxGeometry(1.6, 0.72, 0.88),
-              new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3, metalness: armored ? 0.8 : 0.2 })
+              this._createRealisticBrickMaterial(colorHex)
             );
             mesh.castShadow = true;
           }
@@ -657,6 +686,48 @@ class Bricks3DGame {
       this._spawnBoss();
       this._showToast("BOSS ROUND: PRISM OVERLORD!");
     }
+  }
+
+  _createRealisticBrickMaterial(colorHex) {
+    if (this.currentWorld === "nature") {
+      // Hand-dressed mineral masonry (terracotta, sandstone, jade, river-slate)
+      return new THREE.MeshStandardMaterial({
+        color: colorHex,
+        roughness: 0.84,
+        metalness: 0.04,
+        bumpMap: this.brickPBR.nature.bumpMap,
+        bumpScale: 0.065,
+        roughnessMap: this.brickPBR.nature.roughnessMap,
+      });
+    }
+    if (this.currentWorld === "mall") {
+      // Luxury lacquered ceramic & architectural glass catching warm/cool atrium lights
+      return new THREE.MeshPhysicalMaterial({
+        color: colorHex,
+        roughness: 0.14,
+        metalness: 0.14,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.06,
+        envMapIntensity: 1.2,
+        bumpMap: this.brickPBR.mall.bumpMap,
+        bumpScale: 0.028,
+        roughnessMap: this.brickPBR.mall.roughnessMap,
+      });
+    }
+    // Orbital Station: brushed anodized titanium aerospace alloy with subtle emissive trim
+    return new THREE.MeshPhysicalMaterial({
+      color: colorHex,
+      roughness: 0.24,
+      metalness: 0.84,
+      clearcoat: 0.55,
+      clearcoatRoughness: 0.14,
+      envMapIntensity: 1.25,
+      bumpMap: this.brickPBR.space.bumpMap,
+      bumpScale: 0.036,
+      roughnessMap: this.brickPBR.space.roughnessMap,
+      emissive: colorHex,
+      emissiveIntensity: 0.12,
+    });
   }
 
   _settleStackedBricks() {
@@ -751,13 +822,15 @@ class Bricks3DGame {
   _spawnBall(attached = false, x = this.paddleX, z = this.paddleZ - 0.85, vx = 0, vz = -ARENA.baseBallSpeed) {
     const cfg = WORLD_CONFIGS[this.currentWorld];
     const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(ARENA.ballRadius, 24, 24),
-      new THREE.MeshStandardMaterial({
+      new THREE.SphereGeometry(ARENA.ballRadius, 28, 28),
+      new THREE.MeshPhysicalMaterial({
         color: cfg.ballColor,
         emissive: cfg.ballColor,
-        emissiveIntensity: 0.65,
-        roughness: 0.12,
-        metalness: 0.35,
+        emissiveIntensity: 0.28,
+        roughness: 0.08,
+        metalness: 0.72,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.05,
       })
     );
     mesh.castShadow = true;
@@ -862,10 +935,10 @@ class Bricks3DGame {
       if (!b.armored && !b.tnt) {
         const newColor = cfg.brickPalette[(idx + b.layer) % cfg.brickPalette.length];
         b.colorHex = newColor;
+        const freshMat = this._createRealisticBrickMaterial(newColor);
         b.mesh.traverse((child) => {
           if (child.isMesh) {
-            child.material.color.setHex(newColor);
-            child.material.emissive.setHex(newColor);
+            child.material = freshMat;
           }
         });
       }
