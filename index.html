@@ -46,6 +46,7 @@
       </div>
 
       <div class="hud-actions">
+        <button class="icon-btn" id="btn-diff" title="Cycle Difficulty">MED</button>
         <button class="icon-btn" id="btn-camera" title="Switch Camera (C)">CAM [C]</button>
         <button class="icon-btn" id="btn-audio" title="Toggle Audio (M)">SFX [M]</button>
         <button class="icon-btn" id="btn-pause" title="Pause (P)">PAUSE [P]</button>
@@ -85,6 +86,12 @@
         <p class="overlay-subtitle" id="overlay-subtitle">
           Classic arcade brick-breaker reimagined in 3D with shattering rigid-body physics and live world switching.
         </p>
+
+        <div class="difficulty-picker" role="group" aria-label="Difficulty">
+          <button class="diff-btn" data-diff="easy">EASY<span>5 Lives · Chill</span></button>
+          <button class="diff-btn active" data-diff="medium">MEDIUM<span>3 Lives · Classic</span></button>
+          <button class="diff-btn" data-diff="hard">HARD<span>2 Lives · Pro 2.5x</span></button>
+        </div>
 
         <div class="controls-grid">
           <div class="control-item"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd><span>Move Paddle (or Drag)</span></div>

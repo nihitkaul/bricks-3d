@@ -12,6 +12,7 @@ A classic arcade brick-breaker reimagined in **3D** with Three.js, **cannon-es**
 3. **Orbital Station (`3`)** — Starfield, ringed alien planet, warp gate, asteroids, orbiting Blender satellites, **Low-G 3D ball arcs**, and a **central Gravity Well**.
 
 ## Special Bricks, Power-Ups & Boss Round
+- **Difficulty Modes** — `Easy` (5 lives, wider paddle, calmer hazards, 1x score), `Medium` (3 lives, classic pace, 1.5x score), and `Hard` (2 lives, fast ball, 3-HP armor, 18-HP Boss, 2.5x score).
 - **Explosive TNT Bricks** — Detonate with a 3D shockwave, hit-stop, and chain-reaction physics blasts.
 - **6 Power-Ups** — `Multi-Ball`, `Wide Paddle`, `Fireball`, `Twin Lasers`, `Magnet Catch`, and `Slow-Mo`.
 - **Level 3 Boss: Prism Overlord** — Rotating Blender Boss Core with orbiting armored shields, plasma hazards, and a live HUD health bar.

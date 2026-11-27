@@ -23,6 +23,60 @@ const ARENA = {
   brickLayerH: 0.78,
 };
 
+const DIFFICULTIES = {
+  easy: {
+    id: "easy",
+    label: "EASY",
+    short: "EASY",
+    lives: 5,
+    ballSpeed: 10.8,
+    maxBallSpeed: 15.5,
+    paddleWidth: 3.9,
+    powerUpChance: 0.32,
+    armoredHp: 2,
+    bossHp: 8,
+    bossFireInterval: 4.2,
+    bossPlasmaSpeed: 5.4,
+    bossShieldSpeed: 0.9,
+    hazardScale: 0.6,
+    scoreMult: 1.0,
+  },
+  medium: {
+    id: "medium",
+    label: "MEDIUM",
+    short: "MED",
+    lives: 3,
+    ballSpeed: 13.8,
+    maxBallSpeed: 20.5,
+    paddleWidth: 3.2,
+    powerUpChance: 0.22,
+    armoredHp: 2,
+    bossHp: 12,
+    bossFireInterval: 3.0,
+    bossPlasmaSpeed: 7.4,
+    bossShieldSpeed: 1.35,
+    hazardScale: 1.0,
+    scoreMult: 1.5,
+  },
+  hard: {
+    id: "hard",
+    label: "HARD",
+    short: "HARD",
+    lives: 2,
+    ballSpeed: 17.2,
+    maxBallSpeed: 25.5,
+    paddleWidth: 2.55,
+    powerUpChance: 0.14,
+    armoredHp: 3,
+    bossHp: 18,
+    bossFireInterval: 1.95,
+    bossPlasmaSpeed: 10.2,
+    bossShieldSpeed: 2.05,
+    hazardScale: 1.45,
+    scoreMult: 2.5,
+  },
+};
+
 // Multi-story 3D levels: '1'-'5' standard, 'A' armored (2 HP), 'T' Explosive TNT!
 const LEVELS = [
   {
@@ -123,8 +177,10 @@ class Bricks3DGame {
     this.keys = new Set();
 
     this.state = "start";
+    this.difficultyKey = "medium";
+    this.diff = DIFFICULTIES.medium;
     this.score = 0;
-    this.lives = 3;
+    this.lives = this.diff.lives;
     this.levelIdx = 0;
     this.combo = 0;
     this.cameraModeIdx = 0;
@@ -134,7 +190,7 @@ class Bricks3DGame {
     this.paddleX = 0;
     this.paddleZ = ARENA.paddleZDefault;
     this.paddleVelX = 0;
-    this.paddleWidth = ARENA.paddleBaseWidth;
+    this.paddleWidth = this.diff.paddleWidth;
 
     // Power-up timers
     this.wideTimer = 0;
@@ -187,6 +243,8 @@ class Bricks3DGame {
       overlaySubtitle: document.getElementById("overlay-subtitle"),
       overlayCta: document.getElementById("overlay-cta"),
       worldBtns: Array.from(document.querySelectorAll(".world-btn")),
+      diffBtns: Array.from(document.querySelectorAll(".diff-btn")),
+      btnDiff: document.getElementById("btn-diff"),
       btnCamera: document.getElementById("btn-camera"),
       btnAudio: document.getElementById("btn-audio"),
       btnPause: document.getElementById("btn-pause"),
@@ -196,12 +254,17 @@ class Bricks3DGame {
     };
 
     this.ui.overlayCta.addEventListener("click", () => this._handlePrimaryAction());
+    this.ui.btnDiff.addEventListener("click", () => this.cycleDifficulty());
     this.ui.btnCamera.addEventListener("click", () => this.cycleCamera());
     this.ui.btnAudio.addEventListener("click", () => this.toggleAudio());
     this.ui.btnPause.addEventListener("click", () => this.togglePause());
 
     this.ui.worldBtns.forEach((btn) => {
       btn.addEventListener("click", () => this.switchWorld(btn.dataset.worldTarget));
+    });
+
+    this.ui.diffBtns.forEach((btn) => {
+      btn.addEventListener("click", () => this.setDifficulty(btn.dataset.diff));
     });
 
     this._bindTouchControls();
@@ -489,10 +552,10 @@ class Bricks3DGame {
       y: 2.0,
       z: -5.6,
       radius: 1.55,
-      hp: 12,
-      maxHp: 12,
+      hp: this.diff.bossHp,
+      maxHp: this.diff.bossHp,
       hitFlash: 0,
-      fireTimer: 2.6,
+      fireTimer: this.diff.bossFireInterval,
       shields,
     };
 
@@ -530,7 +593,7 @@ class Bricks3DGame {
             : armored
               ? 0xcbd5e1
               : palette[(parseInt(ch, 10) - 1 + r + layerIdx) % palette.length];
-          const hp = armored ? 2 : 1;
+          const hp = armored ? this.diff.armoredHp : 1;
 
           let mesh;
           const template = tnt
@@ -821,6 +884,43 @@ class Bricks3DGame {
     }
   }
 
+  setDifficulty(diffKey, silent = false) {
+    if (!DIFFICULTIES[diffKey]) return;
+    this.difficultyKey = diffKey;
+    this.diff = DIFFICULTIES[diffKey];
+
+    this.ui.diffBtns.forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.diff === diffKey);
+    });
+    if (this.ui.btnDiff) this.ui.btnDiff.textContent = this.diff.short;
+
+    // Apply paddle width immediately
+    const widthScale = this.diff.paddleWidth / ARENA.paddleBaseWidth;
+    this.paddleWidth = this.diff.paddleWidth * (this.wideTimer > 0 ? 1.45 : 1);
+    if (this.paddleGroup) {
+      this.paddleGroup.scale.x = widthScale * (this.wideTimer > 0 ? 1.45 : 1);
+    }
+
+    if (this.state === "start") {
+      this.lives = this.diff.lives;
+      this._buildLevel(0);
+      this._syncHUD();
+    } else if (this.state === "playing" || this.state === "paused") {
+      this._restartGame();
+    }
+
+    if (!silent) {
+      this.audio.worldSwitch();
+      this._showToast(`DIFFICULTY: ${this.diff.label} (${this.diff.scoreMult}x SCORE)`);
+    }
+  }
+
+  cycleDifficulty() {
+    const order = ["easy", "medium", "hard"];
+    const next = order[(order.indexOf(this.difficultyKey) + 1) % order.length];
+    this.setDifficulty(next);
+  }
+
   cycleCamera() {
     this.cameraModeIdx = (this.cameraModeIdx + 1) % CAMERA_MODES.length;
     this.cameraOrbitAngle = 0;
@@ -878,8 +978,8 @@ class Bricks3DGame {
       if (b.attached) {
         b.attached = false;
         const aimAngle = THREE.MathUtils.clamp((b.attachOffsetX || 0) * 0.55 + (Math.random() - 0.5) * 0.35, -0.85, 0.85);
-        b.vx = Math.sin(aimAngle) * ARENA.baseBallSpeed;
-        b.vz = -Math.cos(aimAngle) * ARENA.baseBallSpeed;
+        b.vx = Math.sin(aimAngle) * this.diff.ballSpeed;
+        b.vz = -Math.cos(aimAngle) * this.diff.ballSpeed;
         b.vy = 5.4;
         this.audio.paddleHit();
       }
@@ -888,13 +988,13 @@ class Bricks3DGame {
 
   _restartGame() {
     this.score = 0;
-    this.lives = 3;
+    this.lives = this.diff.lives;
     this.levelIdx = 0;
     this.combo = 0;
     this.paddleX = 0;
     this.paddleZ = ARENA.paddleZDefault;
-    this.paddleWidth = ARENA.paddleBaseWidth;
-    this.paddleGroup.scale.x = 1;
+    this.paddleWidth = this.diff.paddleWidth;
+    if (this.paddleGroup) this.paddleGroup.scale.x = this.diff.paddleWidth / ARENA.paddleBaseWidth;
     this.wideTimer = 0;
     this.fireballTimer = 0;
     this.laserTimer = 0;
@@ -985,8 +1085,8 @@ class Bricks3DGame {
     if (this.wideTimer > 0) {
       this.wideTimer -= dt;
       if (this.wideTimer <= 0) {
-        this.paddleWidth = ARENA.paddleBaseWidth;
-        this.paddleGroup.scale.x = 1;
+        this.paddleWidth = this.diff.paddleWidth;
+        this.paddleGroup.scale.x = this.diff.paddleWidth / ARENA.paddleBaseWidth;
       }
     }
     if (this.fireballTimer > 0) this.fireballTimer -= dt;
@@ -1064,7 +1164,7 @@ class Bricks3DGame {
       }
 
       this.boss.shields.forEach((s) => {
-        s.angle += dt * 1.35;
+        s.angle += dt * this.diff.bossShieldSpeed;
         s.x = this.boss.x + Math.cos(s.angle) * s.radius;
         s.z = this.boss.z + Math.sin(s.angle) * s.radius;
         s.mesh.position.set(s.x, 1.0, s.z);
@@ -1073,7 +1173,7 @@ class Bricks3DGame {
 
       this.boss.fireTimer -= dt;
       if (this.boss.fireTimer <= 0) {
-        this.boss.fireTimer = 3.0;
+        this.boss.fireTimer = this.diff.bossFireInterval;
         const orb = new THREE.Mesh(
           new THREE.SphereGeometry(0.38, 16, 16),
           new THREE.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xff1e56, emissiveIntensity: 2.0 })
@@ -1081,7 +1181,7 @@ class Bricks3DGame {
         orb.position.set(this.boss.x, 0.75, this.boss.z + 1.4);
         this.scene.add(orb);
         const dirX = THREE.MathUtils.clamp((this.paddleX - this.boss.x) * 0.28, -3.2, 3.2);
-        this.bossProjectiles.push({ mesh: orb, x: this.boss.x, z: this.boss.z + 1.4, vx: dirX, vz: 7.4 });
+        this.bossProjectiles.push({ mesh: orb, x: this.boss.x, z: this.boss.z + 1.4, vx: dirX, vz: this.diff.bossPlasmaSpeed });
       }
     }
 
@@ -1135,7 +1235,7 @@ class Bricks3DGame {
 
       // World 1 Mechanic: Nature Glade gentle wind gust
       if (this.currentWorld === "nature") {
-        b.vx += Math.sin(elapsed * 1.1) * 1.65 * bdt;
+        b.vx += Math.sin(elapsed * 1.1) * 1.65 * this.diff.hazardScale * bdt;
       }
 
       // World 3 Mechanic: Orbital Station central Gravity Well curve
@@ -1145,7 +1245,7 @@ class Bricks3DGame {
         const gz = gw.z - b.z;
         const dist = Math.hypot(gx, gz);
         if (dist > 0.7 && dist < gw.radius) {
-          const pull = (1 - dist / gw.radius) * 11.5;
+          const pull = (1 - dist / gw.radius) * 11.5 * this.diff.hazardScale;
           b.vx += (gx / dist) * pull * bdt;
           b.vz += (gz / dist) * pull * bdt;
         }
@@ -1246,7 +1346,7 @@ class Bricks3DGame {
           continue;
         }
         const hitRatio = THREE.MathUtils.clamp((b.x - this.paddleX) / (this.paddleWidth / 2), -1, 1);
-        const speed = Math.min(20.5, Math.hypot(b.vx, b.vz) * 1.015);
+        const speed = Math.min(this.diff.maxBallSpeed, Math.hypot(b.vx, b.vz) * 1.015);
         const bounceAngle = hitRatio * 1.05;
         b.vx = Math.sin(bounceAngle) * speed + this.paddleVelX * 0.14;
         b.vz = -Math.max(4.8, Math.cos(bounceAngle) * speed);
@@ -1390,9 +1490,9 @@ class Bricks3DGame {
     if (brick.hp <= 0) {
       const posCopy = brick.mesh.position.clone();
       const wasTnt = brick.tnt;
-      this.score += (brick.armored ? 220 : 120) * Math.min(this.combo, 5);
+      this.score += Math.round((brick.armored ? 220 : 120) * Math.min(this.combo, 5) * this.diff.scoreMult);
       this.physics.spawnBrickShatter(posCopy, brick.colorHex, impactVel, 7);
-      if (Math.random() < 0.22) this._spawnPowerUp(brick.x, brick.y, brick.z);
+      if (Math.random() < this.diff.powerUpChance) this._spawnPowerUp(brick.x, brick.y, brick.z);
       this.scene.remove(brick.mesh);
       this.bricks.splice(idx, 1);
 
@@ -1415,8 +1515,8 @@ class Bricks3DGame {
     this._vibrate(22);
     this._showToast(spec.label);
     if (spec.type === "WIDE") {
-      this.paddleWidth = ARENA.paddleBaseWidth * 1.45;
-      this.paddleGroup.scale.x = 1.45;
+      this.paddleWidth = this.diff.paddleWidth * 1.45;
+      this.paddleGroup.scale.x = (this.diff.paddleWidth / ARENA.paddleBaseWidth) * 1.45;
       this.wideTimer = 11;
     } else if (spec.type === "FIREBALL") {
       this.fireballTimer = 7;
