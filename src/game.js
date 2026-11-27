@@ -24,7 +24,7 @@ const ARENA = {
   paddleZMax: 10.2,
   paddleBaseWidth: 3.2,
   paddleDepth: 0.78,
-  ballRadius: 0.36,
+  ballRadius: 0.42,
   baseBallSpeed: 13.8,
   brickLayerH: 0.78,
 };
@@ -832,40 +832,79 @@ class Bricks3DGame {
   }
 
   _spawnBall(attached = false, x = this.paddleX, z = this.paddleZ - 0.85, vx = 0, vz = -ARENA.baseBallSpeed) {
-    const cfg = WORLD_CONFIGS[this.currentWorld];
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(ARENA.ballRadius, 28, 28),
-      new THREE.MeshPhysicalMaterial({
-        color: cfg.ballColor,
-        emissive: cfg.ballColor,
-        emissiveIntensity: 0.28,
-        roughness: 0.08,
-        metalness: 0.72,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.05,
-      })
+    // High-contrast distinctive 3D Energy Orb: incandescent white core + dark/cyan gyro ring + glowing halo + light
+    const mesh = new THREE.Group();
+
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 1.45,
+      roughness: 0.08,
+      metalness: 0.2,
+    });
+    const core = new THREE.Mesh(new THREE.SphereGeometry(ARENA.ballRadius * 0.86, 28, 28), coreMat);
+    core.castShadow = true;
+
+    // Dark obsidian rim ring for razor-sharp contrast against bright skies/floors
+    const rimRing = new THREE.Mesh(
+      new THREE.TorusGeometry(ARENA.ballRadius * 0.94, 0.065, 12, 32),
+      new THREE.MeshStandardMaterial({ color: 0x0b1120, roughness: 0.25, metalness: 0.85 })
     );
-    mesh.castShadow = true;
+
+    // Electric cyan equatorial accent ring
+    const accentMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+    const accentRing = new THREE.Mesh(
+      new THREE.TorusGeometry(ARENA.ballRadius * 1.04, 0.032, 10, 32),
+      accentMat
+    );
+    accentRing.rotation.x = Math.PI / 2;
+
+    // Soft additive outer glow halo
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.32,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(ARENA.ballRadius * 1.32, 20, 20), haloMat);
+
+    // Real moving pool of light illuminating bricks & floor beneath the ball
+    const ballLight = new THREE.PointLight(0x7ef9ff, 2.2, 8.5);
+    mesh.add(core, rimRing, accentRing, halo, ballLight);
+
     const startY = ARENA.ballRadius + 0.08;
     mesh.position.set(x, startY, z);
     this.scene.add(mesh);
 
-    const shadowRing = new THREE.Mesh(
-      new THREE.RingGeometry(0.18, 0.38, 20),
-      new THREE.MeshBasicMaterial({ color: cfg.paddleGlow, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+    // High-contrast double ground reticle (dark outer ring + bright inner ring)
+    const shadowRing = new THREE.Group();
+    const outerShadow = new THREE.Mesh(
+      new THREE.RingGeometry(0.32, 0.52, 24),
+      new THREE.MeshBasicMaterial({ color: 0x050810, transparent: true, opacity: 0.72, side: THREE.DoubleSide })
     );
+    const innerGlow = new THREE.Mesh(
+      new THREE.RingGeometry(0.16, 0.31, 24),
+      new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+    );
+    shadowRing.add(outerShadow, innerGlow);
     shadowRing.rotation.x = -Math.PI / 2;
-    shadowRing.position.set(x, 0.03, z);
+    shadowRing.position.set(x, 0.035, z);
     this.scene.add(shadowRing);
 
+    // Crisp 10-node luminous comet trail
+    const trailCount = 10;
     const trail = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < trailCount; i++) {
+      const ratio = 1 - i / trailCount;
       const tMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(ARENA.ballRadius * (0.75 - i * 0.07), 10, 10),
+        new THREE.SphereGeometry(ARENA.ballRadius * (0.72 * ratio + 0.08), 10, 10),
         new THREE.MeshBasicMaterial({
-          color: cfg.ballColor,
+          color: i < 3 ? 0xffffff : 0x00f0ff,
           transparent: true,
-          opacity: 0.38 - i * 0.04,
+          opacity: 0.52 * ratio,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
         })
       );
       tMesh.position.set(x, startY, z);
@@ -875,9 +914,16 @@ class Bricks3DGame {
 
     this.balls.push({
       mesh,
+      coreMat,
+      accentMat,
+      haloMat,
+      ballLight,
+      rimRing,
+      accentRing,
       shadowRing,
+      innerGlowMat: innerGlow.material,
       trail,
-      history: Array.from({ length: 8 }, () => new THREE.Vector3(x, startY, z)),
+      history: Array.from({ length: trailCount }, () => new THREE.Vector3(x, startY, z)),
       x,
       y: startY,
       z,
@@ -956,13 +1002,7 @@ class Bricks3DGame {
       }
     });
 
-    this.balls.forEach((ball) => {
-      ball.mesh.material.color.setHex(cfg.ballColor);
-      ball.mesh.material.emissive.setHex(cfg.ballColor);
-      ball.shadowRing.material.color.setHex(cfg.paddleGlow);
-      ball.trail.forEach((t) => t.material.color.setHex(cfg.ballColor));
-    });
-
+    // Keep the ball's distinctive high-contrast white + electric cyan identity across all worlds
     if (!silent) {
       this.audio.worldSwitch();
       this._showToast(`${cfg.label} · ${cfg.mechanicLabel}`);
@@ -1500,18 +1540,27 @@ class Bricks3DGame {
       }
 
       b.mesh.position.set(b.x, b.y, b.z);
-      b.shadowRing.position.set(b.x, 0.03, b.z);
-      const heightScale = THREE.MathUtils.clamp(1.15 - (b.y - 0.4) * 0.22, 0.45, 1.15);
+      b.rimRing.rotation.x += dt * 7.5;
+      b.rimRing.rotation.y += dt * 5.2;
+      b.accentRing.rotation.y -= dt * 8.5;
+      b.accentRing.rotation.z += dt * 6.0;
+
+      b.shadowRing.position.set(b.x, 0.035, b.z);
+      const heightScale = THREE.MathUtils.clamp(1.2 - (b.y - 0.45) * 0.2, 0.55, 1.2);
       b.shadowRing.scale.setScalar(heightScale);
 
       b.history.pop();
       b.history.unshift(new THREE.Vector3(b.x, b.y, b.z));
       b.trail.forEach((t, idx) => t.position.copy(b.history[idx]));
 
-      if (this.fireballTimer > 0) {
-        b.mesh.material.color.setHex(0xf97316);
-        b.mesh.material.emissive.setHex(0xef4444);
-      }
+      const isFire = this.fireballTimer > 0;
+      const accentHex = isFire ? 0xff5a1f : 0x00f0ff;
+      b.coreMat.emissive.setHex(isFire ? 0xffae33 : 0xffffff);
+      b.accentMat.color.setHex(accentHex);
+      b.haloMat.color.setHex(accentHex);
+      b.ballLight.color.setHex(isFire ? 0xff6b2b : 0x7ef9ff);
+      b.innerGlowMat.color.setHex(accentHex);
+      b.trail.forEach((t, idx) => t.material.color.setHex(isFire ? (idx < 3 ? 0xffe066 : 0xff4500) : idx < 3 ? 0xffffff : 0x00f0ff));
 
       if (b.z > ARENA.halfD + 1.8) {
         this._removeBall(i);
