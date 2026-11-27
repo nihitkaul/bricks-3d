@@ -219,6 +219,13 @@ class Bricks3DGame {
       movedDist: 0,
     };
 
+    // Double-tap paddle boost state (desktop arrows/A-D + mobile ◀/▶ buttons)
+    this.boost = {
+      lastTapTime: { left: 0, right: 0 },
+      activeDir: 0, // -1 left, +1 right, 0 off
+      dashTimer: 0,
+    };
+
     this.bricks = [];
     this.balls = [];
     this.powerUps = [];
@@ -286,6 +293,7 @@ class Bricks3DGame {
       const start = (e) => {
         e.preventDefault();
         this.audio.unlock();
+        if (!this.touchInput[side]) this._recordDirectionalTap(side);
         this.touchInput[side] = true;
         el.classList.add("pressed");
       };
@@ -514,6 +522,20 @@ class Bricks3DGame {
     this.magnetAura.scale.set(1.15, 0.35, 1);
     this.magnetAura.visible = false;
     this.paddleGroup.add(this.magnetAura);
+
+    // Boost thruster glow bar (visible during double-tap dash/boost)
+    this.boostGlow = new THREE.Mesh(
+      new THREE.BoxGeometry(ARENA.paddleBaseWidth * 1.08, 0.18, 0.92),
+      new THREE.MeshBasicMaterial({
+        color: 0x00f0ff,
+        transparent: true,
+        opacity: 0.55,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    this.boostGlow.visible = false;
+    this.paddleGroup.add(this.boostGlow);
 
     this.paddleGroup.position.set(0, 0.42, this.paddleZ);
     this.scene.add(this.paddleGroup);
@@ -1136,7 +1158,23 @@ class Bricks3DGame {
     this._syncHUD();
   }
 
+  _recordDirectionalTap(side) {
+    const now = performance.now();
+    const prev = this.boost.lastTapTime[side] || 0;
+    this.boost.lastTapTime[side] = now;
+    if (now - prev <= 280) {
+      this.boost.activeDir = side === "left" ? -1 : 1;
+      this.boost.dashTimer = 0.22;
+      this.audio.paddleBoost();
+      this._vibrate(10);
+    }
+  }
+
   _onKeyDown(e) {
+    if (!e.repeat) {
+      if (e.code === "ArrowLeft" || e.code === "KeyA") this._recordDirectionalTap("left");
+      else if (e.code === "ArrowRight" || e.code === "KeyD") this._recordDirectionalTap("right");
+    }
     this.keys.add(e.code);
     if (e.code === "Digit1") this.switchWorld("nature");
     else if (e.code === "Digit2") this.switchWorld("mall");
@@ -1187,8 +1225,17 @@ class Bricks3DGame {
     const moveDirX = (right ? 1 : 0) - (left ? 1 : 0);
     const moveDirZ = (back ? 1 : 0) - (forward ? 1 : 0);
 
+    // Double-tap boost: 2.25x speed during quick dash or while holding after double-tap
+    if (this.boost.dashTimer > 0) this.boost.dashTimer = Math.max(0, this.boost.dashTimer - dt);
+    if (this.boost.activeDir !== 0 && moveDirX !== this.boost.activeDir && this.boost.dashTimer <= 0) {
+      this.boost.activeDir = 0;
+    }
+    const isBoosting = this.boost.activeDir !== 0 && (moveDirX === this.boost.activeDir || this.boost.dashTimer > 0);
+    const effectiveDirX = isBoosting && moveDirX === 0 ? this.boost.activeDir : moveDirX;
+
     if (!this.touchInput.dragging) {
-      this.paddleVelX = moveDirX * 17.0;
+      const speedMult = isBoosting ? 2.25 : 1.0;
+      this.paddleVelX = effectiveDirX * 17.0 * speedMult;
       this.paddleX += this.paddleVelX * dt;
       this.paddleZ += moveDirZ * 8.5 * dt;
     }
@@ -1199,8 +1246,15 @@ class Bricks3DGame {
 
     this.paddleGroup.position.x = this.paddleX;
     this.paddleGroup.position.z = this.paddleZ;
-    this.paddleGroup.rotation.z = THREE.MathUtils.lerp(this.paddleGroup.rotation.z, -moveDirX * 0.12, dt * 11);
+    this.paddleGroup.rotation.z = THREE.MathUtils.lerp(
+      this.paddleGroup.rotation.z,
+      -effectiveDirX * (isBoosting ? 0.24 : 0.12),
+      dt * 13
+    );
     this.paddleGroup.rotation.x = THREE.MathUtils.lerp(this.paddleGroup.rotation.x, moveDirZ * 0.08, dt * 10);
+    if (this.boostGlow) {
+      this.boostGlow.visible = isBoosting;
+    }
 
     if (this.keys.has("KeyQ")) this.cameraOrbitAngle -= dt * 1.1;
     if (this.keys.has("KeyE")) this.cameraOrbitAngle += dt * 1.1;

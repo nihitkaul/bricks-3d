@@ -51,6 +51,10 @@ export class ArcadeAudio {
     this._tone(320, 0.08, "triangle", 0.14, 480);
   }
 
+  paddleBoost() {
+    this._tone(260, 0.11, "sine", 0.1, 680);
+  }
+
   wallHit() {
     this._tone(210, 0.05, "sine", 0.09, 170);
   }
