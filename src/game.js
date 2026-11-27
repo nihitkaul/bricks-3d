@@ -775,7 +775,13 @@ class Bricks3DGame {
         const posCopy = nb.mesh.position.clone();
         const wasTnt = nb.tnt;
         this.score += (nb.armored ? 220 : 120) * Math.min(Math.max(1, this.combo), 5);
-        this.physics.spawnBrickShatter(posCopy, nb.colorHex, { x: (nb.x - origin.x) * 4, z: (nb.z - origin.z) * 4 }, 6);
+        this.physics.spawnBrickShatter(
+          posCopy,
+          nb.colorHex,
+          { x: (nb.x - origin.x) * 4.5, z: (nb.z - origin.z) * 4.5 },
+          10,
+          { world: this.currentWorld, armored: nb.armored, tnt: wasTnt, brickPBR: this.brickPBR }
+        );
         this.scene.remove(nb.mesh);
         this.bricks.splice(j, 1);
         if (wasTnt) chainQueue.push(posCopy);
@@ -811,7 +817,13 @@ class Bricks3DGame {
       this.shakeTime = 0.45;
       this._spawnShockwave(pos, 0xf43f5e);
       for (let k = 0; k < 3; k++) {
-        this.physics.spawnBrickShatter(pos, k % 2 === 0 ? 0xf43f5e : 0xfbbf24, { x: 0, z: 0 }, 10);
+        this.physics.spawnBrickShatter(
+          pos,
+          k % 2 === 0 ? 0xf43f5e : 0xfbbf24,
+          { x: 0, z: 0 },
+          12,
+          { world: this.currentWorld, armored: k === 1, tnt: true, brickPBR: this.brickPBR }
+        );
       }
       this._clearBoss();
       this._showToast("PRISM OVERLORD DEFEATED! +2,500");
@@ -1440,7 +1452,13 @@ class Bricks3DGame {
             sh.hp -= 1;
             this.audio.brickHit(this.combo, sh.hp > 0);
             if (sh.hp <= 0) {
-              this.physics.spawnBrickShatter(sh.mesh.position, 0xcbd5e1, { x: b.vx, z: b.vz }, 6);
+              this.physics.spawnBrickShatter(
+                sh.mesh.position,
+                0xcbd5e1,
+                { x: b.vx, z: b.vz },
+                10,
+                { world: this.currentWorld, armored: true, brickPBR: this.brickPBR }
+              );
               this.scene.remove(sh.mesh);
               this.boss.shields.splice(sIdx, 1);
             }
@@ -1564,7 +1582,13 @@ class Bricks3DGame {
       const posCopy = brick.mesh.position.clone();
       const wasTnt = brick.tnt;
       this.score += Math.round((brick.armored ? 220 : 120) * Math.min(this.combo, 5) * this.diff.scoreMult);
-      this.physics.spawnBrickShatter(posCopy, brick.colorHex, impactVel, 7);
+      this.physics.spawnBrickShatter(
+        posCopy,
+        brick.colorHex,
+        impactVel,
+        brick.tnt ? 12 : 9,
+        { world: this.currentWorld, armored: brick.armored, tnt: wasTnt, brickPBR: this.brickPBR }
+      );
       if (Math.random() < this.diff.powerUpChance) this._spawnPowerUp(brick.x, brick.y, brick.z);
       this.scene.remove(brick.mesh);
       this.bricks.splice(idx, 1);
